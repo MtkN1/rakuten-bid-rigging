@@ -34,7 +34,8 @@
 			"extensions": [
 				"ms-python.black-formatter",
 				"ms-python.flake8",
-				"be5invis.toml"
+				"be5invis.toml",
+				"eamodio.gitlens"
 			]
 		}
 	}

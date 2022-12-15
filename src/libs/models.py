@@ -20,6 +20,14 @@ class Response(Generic[T]):
     _raw: httpx.Response
 
 
+ErrorResponse: TypeAlias = TypedDict(
+    "ErrorResponse",
+    {
+        "code": int,
+    },
+)
+
+
 SymbolObject: TypeAlias = TypedDict(
     "SymbolObject",
     {

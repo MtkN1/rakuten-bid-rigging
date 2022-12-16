@@ -30,202 +30,206 @@ async def main():
             for x in (None, "ENV/mtkn.env", "ENV/q.env")
         ]
 
-        try:
-            # Equity
-            before_equity = {}
+        while True:
+            pprint("Start order sequence")
 
-            r = await client_m.get("/api/v1/cfd/equitydata")
-            r.raise_for_status()
-            before_equity["m"] = r.json()
+            try:
+                # Equity
+                before_equity = {}
 
-            r = await client_q.get("/api/v1/cfd/equitydata")
-            r.raise_for_status()
-            before_equity["q"] = r.json()
+                r = await client_m.get("/api/v1/cfd/equitydata")
+                r.raise_for_status()
+                before_equity["m"] = r.json()
 
-            pprint(format(" before_equity ", "=^80"))
-            pprint(before_equity)
+                r = await client_q.get("/api/v1/cfd/equitydata")
+                r.raise_for_status()
+                before_equity["q"] = r.json()
 
-            await asyncio.sleep(1.0)
+                pprint(format(" before_equity ", "=^80"))
+                pprint(before_equity)
 
-            # Position
-            before_position = {}
+                await asyncio.sleep(1.0)
 
-            r = await client_m.get(
-                "/api/v1/cfd/position",
-                params={
-                    "symbolId": symbol_id,
-                },
-            )
-            r.raise_for_status()
-            before_position["m"] = r.json()
+                # Position
+                before_position = {}
 
-            r = await client_q.get(
-                "/api/v1/cfd/position",
-                params={
-                    "symbolId": symbol_id,
-                },
-            )
-            r.raise_for_status()
-            before_position["q"] = r.json()
-
-            pprint(format(" before_position ", "=^80"))
-            pprint(before_position)
-
-            await asyncio.sleep(1.0)
-
-            if not len(before_position["q"]):
-                # Orderbook
-                r = await client_pub.get(
-                    "/api/v1/orderbook",
+                r = await client_m.get(
+                    "/api/v1/cfd/position",
                     params={
                         "symbolId": symbol_id,
                     },
                 )
                 r.raise_for_status()
-                orderbook = r.json()
+                before_position["m"] = r.json()
 
-                mid_price = orderbook["midPrice"]
-
-                # Open order
-                open_order = {}
-
-                r = await client_q.post(
-                    "/api/v1/cfd/order",
-                    json={
+                r = await client_q.get(
+                    "/api/v1/cfd/position",
+                    params={
                         "symbolId": symbol_id,
-                        "orderPattern": "NORMAL",
-                        "orderData": {
-                            "orderBehavior": "OPEN",
-                            "orderSide": "BUY",
-                            "orderType": "LIMIT",
-                            "price": mid_price,
-                            "amount": open_amount,
-                            "orderExpire": "GTC",
-                            "closeBehavior": "FIFO",
-                            "postOnly": True,
-                        },
                     },
                 )
                 r.raise_for_status()
-                open_order["q"] = r.json()
+                before_position["q"] = r.json()
 
-                r = await client_m.post(
-                    "/api/v1/cfd/order",
-                    json={
-                        "symbolId": symbol_id,
-                        "orderPattern": "NORMAL",
-                        "orderData": {
-                            "orderBehavior": "OPEN",
-                            "orderSide": "SELL",
-                            "orderType": "MARKET",
-                            "amount": open_amount,
-                            "orderExpire": "GTC",
-                            "closeBehavior": "FIFO",
-                        },
-                    },
-                )
-                r.raise_for_status()
-                open_order["m"] = r.json()
-
-                pprint(format(" open_order ", "=^80"))
-                pprint(open_order)
+                pprint(format(" before_position ", "=^80"))
+                pprint(before_position)
 
                 await asyncio.sleep(1.0)
 
-                # Close order
-                close_order = {}
-
-                r = await client_q.post(
-                    "/api/v1/cfd/order",
-                    json={
-                        "symbolId": symbol_id,
-                        "orderPattern": "NORMAL",
-                        "orderData": {
-                            "orderBehavior": "OPEN",
-                            "orderSide": "SELL",
-                            "orderType": "LIMIT",
-                            "price": mid_price,
-                            "amount": open_amount,
-                            "orderExpire": "GTC",
-                            "closeBehavior": "FIFO",
-                            "postOnly": True,
+                if not len(before_position["q"]):
+                    # Orderbook
+                    r = await client_pub.get(
+                        "/api/v1/orderbook",
+                        params={
+                            "symbolId": symbol_id,
                         },
-                    },
-                )
-                r.raise_for_status()
-                close_order["q"] = r.json()
+                    )
+                    r.raise_for_status()
+                    orderbook = r.json()
 
-                r = await client_m.post(
-                    "/api/v1/cfd/order",
-                    json={
-                        "symbolId": symbol_id,
-                        "orderPattern": "NORMAL",
-                        "orderData": {
-                            "orderBehavior": "OPEN",
-                            "orderSide": "BUY",
-                            "orderType": "MARKET",
-                            "amount": open_amount,
-                            "orderExpire": "GTC",
-                            "closeBehavior": "FIFO",
+                    mid_price = orderbook["midPrice"]
+
+                    # Open order
+                    open_order = {}
+
+                    r = await client_q.post(
+                        "/api/v1/cfd/order",
+                        json={
+                            "symbolId": symbol_id,
+                            "orderPattern": "NORMAL",
+                            "orderData": {
+                                "orderBehavior": "OPEN",
+                                "orderSide": "BUY",
+                                "orderType": "LIMIT",
+                                "price": mid_price,
+                                "amount": open_amount,
+                                "orderExpire": "GTC",
+                                "closeBehavior": "FIFO",
+                                "postOnly": True,
+                            },
                         },
-                    },
-                )
-                r.raise_for_status()
-                close_order["m"] = r.json()
+                    )
+                    r.raise_for_status()
+                    open_order["q"] = r.json()
 
-                pprint(format(" close_order ", "=^80"))
-                pprint(close_order)
+                    r = await client_m.post(
+                        "/api/v1/cfd/order",
+                        json={
+                            "symbolId": symbol_id,
+                            "orderPattern": "NORMAL",
+                            "orderData": {
+                                "orderBehavior": "OPEN",
+                                "orderSide": "SELL",
+                                "orderType": "MARKET",
+                                "amount": open_amount,
+                                "orderExpire": "GTC",
+                                "closeBehavior": "FIFO",
+                            },
+                        },
+                    )
+                    r.raise_for_status()
+                    open_order["m"] = r.json()
+
+                    pprint(format(" open_order ", "=^80"))
+                    pprint(open_order)
+
+                    await asyncio.sleep(1.0)
+
+                    # Close order
+                    close_order = {}
+
+                    r = await client_q.post(
+                        "/api/v1/cfd/order",
+                        json={
+                            "symbolId": symbol_id,
+                            "orderPattern": "NORMAL",
+                            "orderData": {
+                                "orderBehavior": "OPEN",
+                                "orderSide": "SELL",
+                                "orderType": "LIMIT",
+                                "price": mid_price,
+                                "amount": open_amount,
+                                "orderExpire": "GTC",
+                                "closeBehavior": "FIFO",
+                                "postOnly": True,
+                            },
+                        },
+                    )
+                    r.raise_for_status()
+                    close_order["q"] = r.json()
+
+                    r = await client_m.post(
+                        "/api/v1/cfd/order",
+                        json={
+                            "symbolId": symbol_id,
+                            "orderPattern": "NORMAL",
+                            "orderData": {
+                                "orderBehavior": "OPEN",
+                                "orderSide": "BUY",
+                                "orderType": "MARKET",
+                                "amount": open_amount,
+                                "orderExpire": "GTC",
+                                "closeBehavior": "FIFO",
+                            },
+                        },
+                    )
+                    r.raise_for_status()
+                    close_order["m"] = r.json()
+
+                    pprint(format(" close_order ", "=^80"))
+                    pprint(close_order)
+
+                    await asyncio.sleep(1.0)
+
+                # Equity
+                after_equity = {}
+
+                r = await client_m.get("/api/v1/cfd/equitydata")
+                r.raise_for_status()
+                after_equity["m"] = r.json()
+
+                r = await client_q.get("/api/v1/cfd/equitydata")
+                r.raise_for_status()
+                after_equity["q"] = r.json()
+
+                pprint(format(" after_equity ", "=^80"))
+                pprint(after_equity)
 
                 await asyncio.sleep(1.0)
 
-            # Equity
-            after_equity = {}
+                # Position
+                after_position = {}
 
-            r = await client_m.get("/api/v1/cfd/equitydata")
-            r.raise_for_status()
-            after_equity["m"] = r.json()
+                r = await client_m.get(
+                    "/api/v1/cfd/position",
+                    params={
+                        "symbolId": symbol_id,
+                    },
+                )
+                r.raise_for_status()
+                after_position["m"] = r.json()
 
-            r = await client_q.get("/api/v1/cfd/equitydata")
-            r.raise_for_status()
-            after_equity["q"] = r.json()
+                r = await client_q.get(
+                    "/api/v1/cfd/position",
+                    params={
+                        "symbolId": symbol_id,
+                    },
+                )
+                r.raise_for_status()
+                after_position["q"] = r.json()
 
-            pprint(format(" after_equity ", "=^80"))
-            pprint(after_equity)
+                pprint(format(" after_position ", "=^80"))
+                pprint(after_position)
 
-            await asyncio.sleep(1.0)
+            except httpx.HTTPStatusError as e:
+                pprint(format(" httpx.HTTPStatusError ", "=^80"))
+                pprint(e)
+                pprint(e.request)
+                pprint(e.response)
+                pprint(e.response.text)
 
-            # Position
-            after_position = {}
-
-            r = await client_m.get(
-                "/api/v1/cfd/position",
-                params={
-                    "symbolId": symbol_id,
-                },
-            )
-            r.raise_for_status()
-            after_position["m"] = r.json()
-
-            r = await client_q.get(
-                "/api/v1/cfd/position",
-                params={
-                    "symbolId": symbol_id,
-                },
-            )
-            r.raise_for_status()
-            after_position["q"] = r.json()
-
-            pprint(format(" after_position ", "=^80"))
-            pprint(after_position)
-
-            await asyncio.sleep(1.0)
-
-        except httpx.HTTPStatusError as e:
-            pprint(format(" httpx.HTTPStatusError ", "=^80"))
-            pprint(e)
-            pprint(e.request)
-            pprint(e.response)
-            pprint(e.response.text)
+            pprint("Wait for next loop ...")
+            await asyncio.sleep(60.0)
 
 
 if __name__ == "__main__":

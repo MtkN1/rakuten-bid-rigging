@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  rakutenbidrigging:
+    image: rakutenbidrigging
+    build:
+      context: .
+      dockerfile: ./Dockerfile

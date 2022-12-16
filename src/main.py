@@ -21,8 +21,8 @@ def create_rakuten_client(dotenv_path: str | None = None) -> httpx.AsyncClient:
 
 
 async def main():
-    symbol_id = 17
-    open_amount = "50"
+    symbol_id = 7
+    open_amount = "0.01"
 
     async with contextlib.AsyncExitStack() as stack:
         client_pub, client_a, client_b = [
@@ -77,7 +77,7 @@ async def main():
 
                 await asyncio.sleep(1.0)
 
-                if not len(before_position["q"]):
+                if not len(before_position["b"]) and not len(before_position["a"]):
                     # Orderbook
                     r = await client_pub.get(
                         "/api/v1/orderbook",
@@ -136,6 +136,19 @@ async def main():
 
                     await asyncio.sleep(1.0)
 
+                elif len(before_position["b"]) and len(before_position["a"]):
+                    # Orderbook
+                    r = await client_pub.get(
+                        "/api/v1/orderbook",
+                        params={
+                            "symbolId": symbol_id,
+                        },
+                    )
+                    r.raise_for_status()
+                    orderbook = r.json()
+
+                    mid_price = orderbook["midPrice"]
+
                     # Close order
                     close_order = {}
 
@@ -145,13 +158,13 @@ async def main():
                             "symbolId": symbol_id,
                             "orderPattern": "NORMAL",
                             "orderData": {
-                                "orderBehavior": "OPEN",
+                                "orderBehavior": "CLOSE",
+                                "positionId": before_position["b"][0]["id"],
                                 "orderSide": "SELL",
                                 "orderType": "LIMIT",
                                 "price": mid_price,
                                 "amount": open_amount,
                                 "orderExpire": "GTC",
-                                "closeBehavior": "FIFO",
                                 "postOnly": True,
                             },
                         },
@@ -165,12 +178,12 @@ async def main():
                             "symbolId": symbol_id,
                             "orderPattern": "NORMAL",
                             "orderData": {
-                                "orderBehavior": "OPEN",
+                                "orderBehavior": "CLOSE",
+                                "positionId": before_position["a"][0]["id"],
                                 "orderSide": "BUY",
                                 "orderType": "MARKET",
                                 "amount": open_amount,
                                 "orderExpire": "GTC",
-                                "closeBehavior": "FIFO",
                             },
                         },
                     )
@@ -226,12 +239,20 @@ async def main():
                 pprint(format(" httpx.HTTPStatusError ", "=^80"))
                 pprint(e)
                 pprint(e.request)
+                pprint(e.request.content)
                 pprint(e.response)
                 pprint(e.response.text)
 
             pprint("Wait for next loop ...")
-            await asyncio.sleep(60.0)
+
+            try:
+                await asyncio.sleep(30.0)
+            except asyncio.CancelledError:
+                return
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

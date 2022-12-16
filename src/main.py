@@ -30,6 +30,7 @@ async def main():
             for x in (None, "ENV/mtkn.env", "ENV/q.env")
         ]
 
+        pprint("Start logic")
         while True:
             pprint("Start order sequence")
 
